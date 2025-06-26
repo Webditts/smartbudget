@@ -154,8 +154,8 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                             controller: _totalAmountController,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              labelText: 'Amount (KSh)',
-                              prefixText: 'KSh ',
+                              labelText: 'Amount (€)',
+                              prefixText: '€ ',
                               hintText: '0.00',
                             ),
                             validator: (value) {
@@ -434,7 +434,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
             style: isTotal ? AppTheme.subheadingStyle : AppTheme.bodyStyle,
           ),
           Text(
-            'KSh ${amount.toStringAsFixed(2)}',
+            '€ ${amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
               color: color,

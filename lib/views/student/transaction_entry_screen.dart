@@ -85,12 +85,12 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
               children: [
                 _buildSummaryItem(
                   'Total Remaining',
-                  'KSh ${controller.totalRemaining.toStringAsFixed(2)}',
+                  '€ ${controller.totalRemaining.toStringAsFixed(2)}',
                   AppTheme.successColor,
                 ),
                 _buildSummaryItem(
                   'Total Spent',
-                  'KSh ${controller.totalSpent.toStringAsFixed(2)}',
+                  '€ ${controller.totalSpent.toStringAsFixed(2)}',
                   AppTheme.errorColor,
                 ),
               ],
@@ -131,7 +131,7 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
           ],
           decoration: InputDecoration(
             hintText: '0.00',
-            prefixText: 'KSh ',
+            prefixText: '€ ',
             prefixStyle: AppTheme.bodyStyle,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -220,7 +220,7 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
                       ),
                     ),
                     Text(
-                      'KSh ${remaining.toStringAsFixed(2)} remaining',
+                      '€ ${remaining.toStringAsFixed(2)} remaining',
                       style: AppTheme.captionStyle.copyWith(
                         color: remaining > 0 ? AppTheme.successColor : AppTheme.errorColor,
                       ),
@@ -371,8 +371,8 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Confirm Overspend'),
         content: Text(
-          'You\'re about to spend KSh ${amount.toStringAsFixed(2)} '
-              'which exceeds your remaining budget of KSh ${remaining.toStringAsFixed(2)}.\n\n'
+          'You\'re about to spend € ${amount.toStringAsFixed(2)} '
+              'which exceeds your remaining budget of € ${remaining.toStringAsFixed(2)}.\n\n'
               'Are you sure you want to proceed?',
         ),
         actions: [

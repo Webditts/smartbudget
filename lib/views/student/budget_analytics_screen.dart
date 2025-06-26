@@ -294,7 +294,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '\${spent.toStringAsFixed(2)} of \${budget.toStringAsFixed(2)}',
+                    '€{spent.toStringAsFixed(2)} of €{budget.toStringAsFixed(2)}',
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                   SizedBox(height: 4),
@@ -320,7 +320,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                 ),
                 Text(
-                  isOverBudget ? 'Over by \${(-remaining).toStringAsFixed(2)}' : '\${remaining.toStringAsFixed(2)} left',
+                  isOverBudget ? 'Over by €{(-remaining).toStringAsFixed(2)}' : '€{remaining.toStringAsFixed(2)} left',
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverBudget ? Colors.red : Colors.green,
@@ -639,7 +639,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                 ),
                 Text(
-                  '\${amount.toStringAsFixed(0)}',
+                  '€{amount.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.grey.shade600,
@@ -697,7 +697,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
     // Average transaction amount
     final avgAmount = transactions.fold(0.0, (sum, t) => sum + t.amount) / transactions.length;
     patterns.add(SpendingPattern(
-      'Average transaction: \${avgAmount.toStringAsFixed(2)}',
+      'Average transaction: €{avgAmount.toStringAsFixed(2)}',
       Icons.monetization_on,
       Colors.green,
     ));
@@ -841,7 +841,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
       final avgDaily = dailyAmounts.values.reduce((a, b) => a + b) / dailyAmounts.length;
       habits.add(SpendingHabit(
         'Daily Average',
-        '\${avgDaily.toStringAsFixed(2)} per active day',
+        '€{avgDaily.toStringAsFixed(2)} per active day',
         Icons.trending_up,
         Colors.green,
       ));

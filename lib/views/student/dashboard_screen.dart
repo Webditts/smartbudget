@@ -270,7 +270,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   children: [
                     const Text('Spent', style: AppTheme.captionStyle),
                     Text(
-                      'KSh ${budgetController.totalSpent.toStringAsFixed(2)}',
+                      '€ ${budgetController.totalSpent.toStringAsFixed(2)}',
                       style: AppTheme.amountStyle.copyWith(color: AppTheme.errorColor),
                     ),
                   ],
@@ -280,7 +280,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   children: [
                     const Text('Remaining', style: AppTheme.captionStyle),
                     Text(
-                      'KSh ${budgetController.totalRemaining.toStringAsFixed(2)}',
+                      '€ ${budgetController.totalRemaining.toStringAsFixed(2)}',
                       style: AppTheme.amountStyle.copyWith(color: AppTheme.successColor),
                     ),
                   ],
@@ -297,7 +297,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Total Budget: KSh ${budget.totalAmount.toStringAsFixed(2)}',
+              'Total Budget: € ${budget.totalAmount.toStringAsFixed(2)}',
               style: AppTheme.captionStyle,
             ),
           ],
@@ -371,7 +371,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     children: [
                       Text(title, style: AppTheme.bodyStyle),
                       Text(
-                        'KSh ${remaining.toStringAsFixed(2)} remaining',
+                        '€${remaining.toStringAsFixed(2)} remaining',
                         style: AppTheme.captionStyle,
                       ),
                     ],
@@ -381,11 +381,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'KSh ${spent.toStringAsFixed(2)}',
+                      '€${spent.toStringAsFixed(2)}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'of KSh ${budgeted.toStringAsFixed(2)}',
+                      'of €${budgeted.toStringAsFixed(2)}',
                       style: AppTheme.captionStyle,
                     ),
                   ],
@@ -405,6 +405,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       ),
     );
   }
+
 
   Widget _buildRecentTransactions(BudgetController budgetController) {
     final recentTransactions = budgetController.transactions
@@ -497,7 +498,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ],
         ),
         trailing: Text(
-          '-KSh ${transaction.amount.toStringAsFixed(2)}',
+          '-€ ${transaction.amount.toStringAsFixed(2)}',
           style: AppTheme.amountStyle.copyWith(
             color: AppTheme.errorColor,
             fontWeight: FontWeight.bold,

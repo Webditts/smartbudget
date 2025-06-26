@@ -123,7 +123,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
               Text(
-                '\$${totalCurrentAmount.toStringAsFixed(0)} / \$${totalTargetAmount.toStringAsFixed(0)}',
+                '€${totalCurrentAmount.toStringAsFixed(0)} / €${totalTargetAmount.toStringAsFixed(0)}',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -224,7 +224,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '\$${goal.currentAmount.toStringAsFixed(0)} / \$${goal.targetAmount.toStringAsFixed(0)}',
+                  '€${goal.currentAmount.toStringAsFixed(0)} / €${goal.targetAmount.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -251,7 +251,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
                 ),
                 Spacer(),
                 Text(
-                  '\$${remainingAmount.toStringAsFixed(0)} remaining',
+                  '€${remainingAmount.toStringAsFixed(0)} remaining',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w500,
@@ -309,7 +309,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
               TextField(
                 controller: targetAmountController,
                 decoration: InputDecoration(
-                  labelText: 'Target Amount (\$)',
+                  labelText: 'Target Amount (\€)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -398,7 +398,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
               TextField(
                 controller: targetAmountController,
                 decoration: InputDecoration(
-                  labelText: 'Target Amount (\$)',
+                  labelText: 'Target Amount (\€)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -445,7 +445,7 @@ class _BudgetGoalsScreenState extends State<BudgetGoalsScreen> {
         content: TextField(
           controller: amountController,
           decoration: InputDecoration(
-            labelText: 'Amount (\$)',
+            labelText: 'Amount (\€)',
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.number,
