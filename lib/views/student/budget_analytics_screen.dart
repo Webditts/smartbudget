@@ -1,12 +1,18 @@
-// views/student/budget_analytics_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
 import '../../controllers/budget_controller.dart';
 import '../../models/transaction_model.dart';
+import '../../models/budget_model.dart';
 import '../../widgets/category_trend_chart.dart';
 
 class BudgetAnalyticsScreen extends StatefulWidget {
+  final String studentUserId;
+
+  const BudgetAnalyticsScreen({
+    Key? key,
+    required this.studentUserId,
+  }) : super(key: key);
+
   @override
   _BudgetAnalyticsScreenState createState() => _BudgetAnalyticsScreenState();
 }
@@ -19,8 +25,10 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // Initialize BudgetController for selected student
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BudgetController>().loadData();
+      context.read<BudgetController>().initialize(userId: widget.studentUserId);
     });
   }
 
@@ -34,11 +42,11 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Budget Analytics'),
+        title: const Text('Budget Analytics'),
         backgroundColor: Colors.blue.shade700,
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
+          tabs: const [
             Tab(icon: Icon(Icons.pie_chart), text: 'Overview'),
             Tab(icon: Icon(Icons.show_chart), text: 'Trends'),
             Tab(icon: Icon(Icons.analytics), text: 'Insights'),
@@ -48,7 +56,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
       body: Consumer<BudgetController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (controller.currentBudget == null) {
@@ -72,22 +80,16 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children: const [
           Icon(Icons.analytics, size: 64, color: Colors.grey),
           SizedBox(height: 16),
-          Text('No Budget Data', style: Theme.of(context).textTheme.headlineSmall),
+          Text('No Budget Data', style: TextStyle(fontSize: 20)),
           SizedBox(height: 8),
           Text('Create a budget and add transactions to see analytics'),
-          SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
-            child: Text('Create Budget'),
-          ),
         ],
       ),
     );
   }
-
   Widget _buildOverviewTab(BudgetController controller) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -294,7 +296,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '€{spent.toStringAsFixed(2)} of €{budget.toStringAsFixed(2)}',
+                    '€${spent.toStringAsFixed(2)} of €${budget.toStringAsFixed(2)}',
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                   SizedBox(height: 4),
@@ -320,7 +322,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                 ),
                 Text(
-                  isOverBudget ? 'Over by €{(-remaining).toStringAsFixed(2)}' : '€{remaining.toStringAsFixed(2)} left',
+                  isOverBudget ? 'Over by €${(-remaining).toStringAsFixed(2)}' : '€${remaining.toStringAsFixed(2)} left',
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverBudget ? Colors.red : Colors.green,
@@ -639,7 +641,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
                   ),
                 ),
                 Text(
-                  '€{amount.toStringAsFixed(0)}',
+                  '€${amount.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.grey.shade600,
@@ -697,7 +699,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
     // Average transaction amount
     final avgAmount = transactions.fold(0.0, (sum, t) => sum + t.amount) / transactions.length;
     patterns.add(SpendingPattern(
-      'Average transaction: €{avgAmount.toStringAsFixed(2)}',
+      'Average transaction: €${avgAmount.toStringAsFixed(2)}',
       Icons.monetization_on,
       Colors.green,
     ));
@@ -841,7 +843,7 @@ class _BudgetAnalyticsScreenState extends State<BudgetAnalyticsScreen>
       final avgDaily = dailyAmounts.values.reduce((a, b) => a + b) / dailyAmounts.length;
       habits.add(SpendingHabit(
         'Daily Average',
-        '€{avgDaily.toStringAsFixed(2)} per active day',
+        '€${avgDaily.toStringAsFixed(2)} per active day',
         Icons.trending_up,
         Colors.green,
       ));

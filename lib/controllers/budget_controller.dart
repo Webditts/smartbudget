@@ -1,82 +1,47 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/budget_model.dart';
-import '../models/transaction_model.dart';
-import '../services/storage_service.dart';
+import '../models/transaction_model.dart' as model;
+import '../views/auth/firebase_user.dart';
 
 class BudgetController extends ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   Budget? _currentBudget;
-  List<Transaction> _transactions = [];
+  List<model.Transaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
 
-  // Dummy transaction loading
-  Future<void> loadData() async {
-    _transactions = await fetchTransactions(); // Example
-    notifyListeners();
-  }
-
-  Future<List<Transaction>> fetchTransactions() async {
-    return [
-      Transaction(
-        id: '1',
-        amount: 20.0,
-        category: TransactionCategory.needs,
-        createdAt: DateTime.now(),
-        budgetId: 'budget1',
-      )
-
-      // Add more dummy transactions as needed
-    ];
-  }
-
   Budget? get currentBudget => _currentBudget;
-  List<Transaction> get transactions => _transactions;
+  List<model.Transaction> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Calculate spent amounts by category
-  double get needsSpent => _transactions
-      .where((t) => t.category == TransactionCategory.needs)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
-  double get wantsSpent => _transactions
-      .where((t) => t.category == TransactionCategory.wants)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
-  double get emergencySpent => _transactions
-      .where((t) => t.category == TransactionCategory.emergency)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
+  double get needsSpent => _sumCategory(model.TransactionCategory.needs);
+  double get wantsSpent => _sumCategory(model.TransactionCategory.wants);
+  double get emergencySpent => _sumCategory(model.TransactionCategory.emergency);
   double get totalSpent => needsSpent + wantsSpent + emergencySpent;
 
-  // Calculate remaining amounts
-  double get needsRemaining =>
-      _currentBudget != null ? _currentBudget!.needsAmount - needsSpent : 0.0;
-
-  double get wantsRemaining =>
-      _currentBudget != null ? _currentBudget!.wantsAmount - wantsSpent : 0.0;
-
-  double get emergencyRemaining =>
-      _currentBudget != null ? _currentBudget!.emergencyAmount - emergencySpent : 0.0;
-
+  double get needsRemaining => _remaining(model.TransactionCategory.needs);
+  double get wantsRemaining => _remaining(model.TransactionCategory.wants);
+  double get emergencyRemaining => _remaining(model.TransactionCategory.emergency);
   double get totalRemaining => needsRemaining + wantsRemaining + emergencyRemaining;
 
-  // Budget health indicator
   BudgetHealth get budgetHealth {
     if (_currentBudget == null) return BudgetHealth.good;
-
     final spentPercentage = (totalSpent / _currentBudget!.totalAmount) * 100;
     if (spentPercentage < 50) return BudgetHealth.good;
     if (spentPercentage < 80) return BudgetHealth.warning;
     return BudgetHealth.critical;
   }
 
-  // Initialize controller
-  Future<void> initialize() async {
+  Future<void> initialize({String? userId}) async {
     _setLoading(true);
     try {
-      await _loadBudget();
-      await _loadTransactions();
+      await _loadBudget(userId: userId);
+      if (_currentBudget != null) {
+        await _loadTransactions();
+      }
     } catch (e) {
       _setError('Failed to load data: $e');
     } finally {
@@ -84,7 +49,45 @@ class BudgetController extends ChangeNotifier {
     }
   }
 
-  // Create a new budget
+  Future<void> _loadBudget({String? userId}) async {
+    final uid = userId ?? FirebaseUserHelper.uid;
+    if (uid == null) {
+      _setError('No user ID provided');
+      return;
+    }
+
+    final snapshot = await _firestore
+        .collection('budgets')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final budget = Budget.fromJson(snapshot.docs.first.data());
+      if (budget.endDate.isAfter(DateTime.now())) {
+        _currentBudget = budget;
+      } else {
+        _currentBudget = null;
+      }
+    } else {
+      _currentBudget = null;
+    }
+  }
+
+  Future<void> _loadTransactions() async {
+    if (_currentBudget == null) return;
+
+    final snapshot = await _firestore
+        .collection('transactions')
+        .where('budgetId', isEqualTo: _currentBudget!.id)
+        .get();
+
+    _transactions = snapshot.docs
+        .map((doc) => model.Transaction.fromJson(doc.data()))
+        .toList();
+  }
+
   Future<void> createBudget({
     required double totalAmount,
     required double needsPercentage,
@@ -96,9 +99,17 @@ class BudgetController extends ChangeNotifier {
     try {
       final now = DateTime.now();
       final endDate = now.add(Duration(days: period.days));
+      final uid = FirebaseUserHelper.uid;
+      if (uid == null) {
+        _setError('No logged-in user found');
+        _setLoading(false);
+        return;
+      }
 
+      final budgetRef = _firestore.collection('budgets').doc();
       final budget = Budget(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: budgetRef.id,
+        userId: uid,
         totalAmount: totalAmount,
         needsAmount: totalAmount * (needsPercentage / 100),
         wantsAmount: totalAmount * (wantsPercentage / 100),
@@ -109,9 +120,9 @@ class BudgetController extends ChangeNotifier {
         endDate: endDate,
       );
 
-      await StorageService.saveBudget(budget);
+      await budgetRef.set(budget.toJson());
       _currentBudget = budget;
-      _transactions.clear(); // Clear old transactions
+      _transactions.clear();
       _clearError();
       notifyListeners();
     } catch (e) {
@@ -121,67 +132,115 @@ class BudgetController extends ChangeNotifier {
     }
   }
 
-  // Load budget from storage
-  Future<void> _loadBudget() async {
-    final budget = await StorageService.loadBudget();
-    if (budget != null) {
-      if (budget.endDate.isAfter(DateTime.now())) {
-        _currentBudget = budget;
-      } else {
-        await StorageService.clearBudget();
-        _currentBudget = null;
-      }
-    }
-  }
+  // Future<void> _loadBudget() async {
+  //   final uid = FirebaseUserHelper.uid;
+  //   if (uid == null) {
+  //     _setError('No logged-in user found');
+  //     return;
+  //   }
+  //
+  //   final snapshot = await _firestore
+  //       .collection('budgets')
+  //       .where('userId', isEqualTo: uid)
+  //       .orderBy('createdAt', descending: true)
+  //       .limit(1)
+  //       .get();
+  //
+  //   if (snapshot.docs.isNotEmpty) {
+  //     final budget = Budget.fromJson(snapshot.docs.first.data());
+  //     if (budget.endDate.isAfter(DateTime.now())) {
+  //       _currentBudget = budget;
+  //     } else {
+  //       _currentBudget = null;
+  //     }
+  //   } else {
+  //     _currentBudget = null;
+  //   }
+  // }
 
-  // Load transactions from storage
-  Future<void> _loadTransactions() async {
-    if (_currentBudget != null) {
-      _transactions = await StorageService.loadTransactions(_currentBudget!.id);
-    }
-  }
+  // Future<void> _loadTransactions() async {
+  //   if (_currentBudget == null) return;
+  //
+  //   final snapshot = await _firestore
+  //       .collection('transactions')
+  //       .where('budgetId', isEqualTo: _currentBudget!.id)
+  //       .get();
+  //
+  //   _transactions = snapshot.docs
+  //       .map((doc) => model.Transaction.fromJson(doc.data()))
+  //       .toList();
+  // }
 
-  // Add a transaction
-  void addTransaction(Transaction transaction) {
-    _transactions.add(transaction);
+  Future<void> addTransaction(model.Transaction transaction) async {
+    if (_currentBudget == null) {
+      _setError('No active budget found');
+      return;
+    }
+
+    final correctedTransaction = transaction.copyWith(budgetId: _currentBudget!.id);
+
+    await _firestore
+        .collection('transactions')
+        .doc(correctedTransaction.id)
+        .set(correctedTransaction.toJson());
+
+    _transactions.add(correctedTransaction);
     notifyListeners();
   }
 
-  // Can spend check
-  bool canSpend(TransactionCategory category, double amount) {
-    switch (category) {
-      case TransactionCategory.needs:
-        return needsRemaining >= amount;
-      case TransactionCategory.wants:
-        return wantsRemaining >= amount;
-      case TransactionCategory.emergency:
-        return emergencyRemaining >= amount;
-    }
+  bool canSpend(model.TransactionCategory category, double amount) {
+    return getRemainingAmount(category) >= amount;
   }
 
-  // Get remaining for a category
-  double getRemainingAmount(TransactionCategory category) {
+  double getRemainingAmount(model.TransactionCategory category) {
     switch (category) {
-      case TransactionCategory.needs:
+      case model.TransactionCategory.needs:
         return needsRemaining;
-      case TransactionCategory.wants:
+      case model.TransactionCategory.wants:
         return wantsRemaining;
-      case TransactionCategory.emergency:
+      case model.TransactionCategory.emergency:
         return emergencyRemaining;
     }
   }
 
-  // Clear budget
   Future<void> clearBudget() async {
-    await StorageService.clearBudget();
-    await StorageService.clearTransactions();
+    if (_currentBudget != null) {
+      final budgetId = _currentBudget!.id;
+      final transactionsSnapshot = await _firestore
+          .collection('transactions')
+          .where('budgetId', isEqualTo: budgetId)
+          .get();
+
+      for (final doc in transactionsSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      await _firestore.collection('budgets').doc(budgetId).delete();
+    }
+
     _currentBudget = null;
     _transactions.clear();
     _clearError();
     notifyListeners();
   }
 
-  // Helpers
+  double _sumCategory(model.TransactionCategory category) {
+    return _transactions
+        .where((t) => t.category == category)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double _remaining(model.TransactionCategory category) {
+    switch (category) {
+      case model.TransactionCategory.needs:
+        return (_currentBudget?.needsAmount ?? 0.0) - needsSpent;
+      case model.TransactionCategory.wants:
+        return (_currentBudget?.wantsAmount ?? 0.0) - wantsSpent;
+      case model.TransactionCategory.emergency:
+        return (_currentBudget?.emergencyAmount ?? 0.0) - emergencySpent;
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();

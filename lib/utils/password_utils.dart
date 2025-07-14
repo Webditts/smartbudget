@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class PasswordUtils {
   static String hashPassword(String password) {
@@ -8,3 +8,4 @@ class PasswordUtils {
     return digest.toString();
   }
 }
+

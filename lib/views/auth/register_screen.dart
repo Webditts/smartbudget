@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Join us and start your learning adventure',
+                          'Join us and start your adventure',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Colors.grey[600],
                             fontSize: 16,
@@ -198,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 role: UserRole.student,
                                 title: 'Student',
                                 icon: Icons.school,
-                                description: 'I want to learn and track my progress',
+                                description: 'I want to learn and track my spending',
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -207,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 role: UserRole.parent,
                                 title: 'Parent',
                                 icon: Icons.family_restroom,
-                                description: 'I want to monitor my child\'s learning',
+                                description: 'I want to monitor my child\'s Budget',
                               ),
                             ),
                           ],

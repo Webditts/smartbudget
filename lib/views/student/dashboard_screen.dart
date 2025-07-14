@@ -521,28 +521,43 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         ),
         const SizedBox(height: 12),
         Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                'Add Expense',
-                Icons.add_shopping_cart,
-                AppTheme.errorColor,
-                    () => Navigator.pushNamed(context, '/transaction-entry'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionCard(
-                'View Reports',
-                Icons.bar_chart,
-                AppTheme.primaryColor,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BudgetAnalyticsScreen()),
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Add Expense',
+                  Icons.add_shopping_cart,
+                  AppTheme.errorColor,
+                      () => Navigator.pushNamed(context, '/transaction-entry'),
                 ),
               ),
-            ),
-          ]
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'View Reports',
+                  Icons.bar_chart,
+                  AppTheme.primaryColor,
+                      () {
+                    final budgetController = Provider.of<BudgetController>(context, listen: false);
+
+                    // Check if there's a current budget with user info
+                    if (budgetController.currentBudget != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BudgetAnalyticsScreen(
+                            studentUserId: budgetController.currentBudget!.userId, // Assuming userId exists in budget model
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No budget data available')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ]
         ),
         const SizedBox(height: 12),
         Row(
@@ -553,9 +568,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 Icons.flag,
                 AppTheme.successColor,
                     () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BudgetGoalsScreen()),
-                    ),
+                  context,
+                  MaterialPageRoute(builder: (context) => BudgetGoalsScreen()),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -565,10 +580,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 Icons.lightbulb,
                 AppTheme.wantsColor,
                     () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SavingTipsScreen()),
-
-                    ),
+                  context,
+                  MaterialPageRoute(builder: (context) => SavingTipsScreen()),
+                ),
               ),
             ),
           ],
@@ -576,6 +590,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       ],
     );
   }
+
 
   Widget _buildQuickActionCard(
       String title,

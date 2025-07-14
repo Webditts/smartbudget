@@ -1,3 +1,9 @@
+enum TransactionCategory {
+  needs,
+  wants,
+  emergency,
+}
+
 class Transaction {
   final String id;
   final double amount;
@@ -15,25 +21,23 @@ class Transaction {
     required this.budgetId,
   });
 
-  // Convert to JSON for storage
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'amount': amount,
-      'category': category.toString(),
+      'category': category.name, // store enum as string (e.g. "needs")
       'description': description,
       'createdAt': createdAt.toIso8601String(),
       'budgetId': budgetId,
     };
   }
 
-  // Create from JSON
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'],
-      amount: json['amount'].toDouble(),
+      amount: (json['amount'] as num).toDouble(),
       category: TransactionCategory.values.firstWhere(
-            (e) => e.toString() == json['category'],
+            (e) => e.name == json['category'],
         orElse: () => TransactionCategory.needs,
       ),
       description: json['description'],
@@ -58,46 +62,5 @@ class Transaction {
       createdAt: createdAt ?? this.createdAt,
       budgetId: budgetId ?? this.budgetId,
     );
-  }
-}
-
-enum TransactionCategory {
-  needs,
-  wants,
-  emergency,
-}
-
-extension TransactionCategoryExtension on TransactionCategory {
-  String get displayName {
-    switch (this) {
-      case TransactionCategory.needs:
-        return 'Needs';
-      case TransactionCategory.wants:
-        return 'Wants';
-      case TransactionCategory.emergency:
-        return 'Emergency';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case TransactionCategory.needs:
-        return 'Essential expenses like food, transport, school supplies';
-      case TransactionCategory.wants:
-        return 'Entertainment, hobbies, non-essential purchases';
-      case TransactionCategory.emergency:
-        return 'Unexpected urgent expenses';
-    }
-  }
-
-  String get icon {
-    switch (this) {
-      case TransactionCategory.needs:
-        return '🍽️';
-      case TransactionCategory.wants:
-        return '🎮';
-      case TransactionCategory.emergency:
-        return '🚨';
-    }
   }
 }

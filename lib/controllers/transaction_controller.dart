@@ -1,15 +1,27 @@
 import 'package:flutter/foundation.dart';
+// Avoid this ambiguous import
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
+import '../models/transaction_model.dart' show Transaction, TransactionCategory;
+
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/transaction_model.dart';
-import '../services/storage_service.dart';
 
 class TransactionController extends ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   bool _isLoading = false;
   String? _error;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Add a new transaction
+  String get _uid => _auth.currentUser?.uid ?? '';
+
+  /// Add a new transaction to Firestore
   Future<bool> addTransaction({
     required double amount,
     required TransactionCategory category,
@@ -27,7 +39,11 @@ class TransactionController extends ChangeNotifier {
         budgetId: budgetId,
       );
 
-      await StorageService.saveTransaction(transaction);
+      await _firestore
+          .collection('transactions')
+          .doc(transaction.id)
+          .set(transaction.toJson());
+
       _clearError();
       notifyListeners();
       return true;
@@ -39,20 +55,27 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  // Get transactions for a specific budget
+  /// Get transactions for a specific budget
   Future<List<Transaction>> getTransactionsForBudget(String budgetId) async {
     try {
-      return await StorageService.loadTransactions(budgetId);
+      final snapshot = await _firestore
+          .collection('transactions')
+          .where('budgetId', isEqualTo: budgetId)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Transaction.fromJson(doc.data()))
+          .toList();
     } catch (e) {
       _setError('Failed to load transactions: $e');
       return [];
     }
   }
 
-  // Get recent transactions (last 10)
+  /// Get recent (last 10) transactions
   Future<List<Transaction>> getRecentTransactions(String budgetId) async {
     try {
-      final transactions = await StorageService.loadTransactions(budgetId);
+      final transactions = await getTransactionsForBudget(budgetId);
       transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return transactions.take(10).toList();
     } catch (e) {
@@ -61,70 +84,62 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  // Get transactions by category
+  /// Get transactions by category
   Future<List<Transaction>> getTransactionsByCategory(
-      String budgetId,
-      TransactionCategory category,
-      ) async {
+      String budgetId, TransactionCategory category) async {
     try {
-      final transactions = await StorageService.loadTransactions(budgetId);
+      final transactions = await getTransactionsForBudget(budgetId);
       return transactions.where((t) => t.category == category).toList();
     } catch (e) {
-      _setError('Failed to load transactions by category: $e');
+      _setError('Failed to load by category: $e');
       return [];
     }
   }
 
-  // Get daily spending for charts
+  /// Daily spending map for charts
   Future<Map<DateTime, double>> getDailySpending(String budgetId) async {
     try {
-      final transactions = await StorageService.loadTransactions(budgetId);
-      final Map<DateTime, double> dailySpending = {};
+      final transactions = await getTransactionsForBudget(budgetId);
+      final Map<DateTime, double> spending = {};
 
-      for (final transaction in transactions) {
-        final date = DateTime(
-          transaction.createdAt.year,
-          transaction.createdAt.month,
-          transaction.createdAt.day,
-        );
-
-        dailySpending[date] = (dailySpending[date] ?? 0.0) + transaction.amount;
+      for (final t in transactions) {
+        final date = DateTime(t.createdAt.year, t.createdAt.month, t.createdAt.day);
+        spending[date] = (spending[date] ?? 0) + t.amount;
       }
 
-      return dailySpending;
+      return spending;
     } catch (e) {
-      _setError('Failed to calculate daily spending: $e');
+      _setError('Failed to compute daily spending: $e');
       return {};
     }
   }
 
-  // Get spending by category for pie chart
+  /// Spending per category for pie charts
   Future<Map<TransactionCategory, double>> getSpendingByCategory(String budgetId) async {
     try {
-      final transactions = await StorageService.loadTransactions(budgetId);
-      final Map<TransactionCategory, double> categorySpending = {
+      final transactions = await getTransactionsForBudget(budgetId);
+      final Map<TransactionCategory, double> totals = {
         TransactionCategory.needs: 0.0,
         TransactionCategory.wants: 0.0,
         TransactionCategory.emergency: 0.0,
       };
 
-      for (final transaction in transactions) {
-        categorySpending[transaction.category] =
-            (categorySpending[transaction.category] ?? 0.0) + transaction.amount;
+      for (final t in transactions) {
+        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
       }
 
-      return categorySpending;
+      return totals;
     } catch (e) {
-      _setError('Failed to calculate category spending: $e');
+      _setError('Failed to calculate spending by category: $e');
       return {};
     }
   }
 
-  // Delete a transaction
-  Future<bool> deleteTransaction(String transactionId, String budgetId) async {
+  /// Delete a transaction
+  Future<bool> deleteTransaction(String transactionId) async {
     _setLoading(true);
     try {
-      await StorageService.deleteTransaction(transactionId, budgetId);
+      await _firestore.collection('transactions').doc(transactionId).delete();
       _clearError();
       notifyListeners();
       return true;
@@ -136,11 +151,15 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  // Update a transaction
+  /// Update a transaction
   Future<bool> updateTransaction(Transaction transaction) async {
     _setLoading(true);
     try {
-      await StorageService.updateTransaction(transaction);
+      await _firestore
+          .collection('transactions')
+          .doc(transaction.id)
+          .update(transaction.toJson());
+
       _clearError();
       notifyListeners();
       return true;
@@ -152,56 +171,46 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  // Validate transaction amount against budget
-  bool validateTransaction(
-      double amount,
-      TransactionCategory category,
-      double remainingAmount,
-      ) {
-    if (amount <= 0) return false;
-    return remainingAmount >= amount;
+  /// Validates if the transaction can be made
+  bool validateTransaction(double amount, double remaining) {
+    return amount > 0 && amount <= remaining;
   }
 
-  // Get transaction statistics
+  /// Get transaction stats
   Future<TransactionStats> getTransactionStats(String budgetId) async {
     try {
-      final transactions = await StorageService.loadTransactions(budgetId);
+      final transactions = await getTransactionsForBudget(budgetId);
+      double total = 0, needs = 0, wants = 0, emergency = 0;
 
-      double totalSpent = 0.0;
-      double needsSpent = 0.0;
-      double wantsSpent = 0.0;
-      double emergencySpent = 0.0;
-
-      for (final transaction in transactions) {
-        totalSpent += transaction.amount;
-        switch (transaction.category) {
+      for (final t in transactions) {
+        total += t.amount;
+        switch (t.category) {
           case TransactionCategory.needs:
-            needsSpent += transaction.amount;
+            needs += t.amount;
             break;
           case TransactionCategory.wants:
-            wantsSpent += transaction.amount;
+            wants += t.amount;
             break;
           case TransactionCategory.emergency:
-            emergencySpent += transaction.amount;
+            emergency += t.amount;
             break;
         }
       }
 
       return TransactionStats(
         totalTransactions: transactions.length,
-        totalSpent: totalSpent,
-        needsSpent: needsSpent,
-        wantsSpent: wantsSpent,
-        emergencySpent: emergencySpent,
-        averageTransaction: transactions.isNotEmpty ? totalSpent / transactions.length : 0.0,
+        totalSpent: total,
+        needsSpent: needs,
+        wantsSpent: wants,
+        emergencySpent: emergency,
+        averageTransaction: transactions.isNotEmpty ? total / transactions.length : 0,
       );
     } catch (e) {
-      _setError('Failed to calculate transaction stats: $e');
+      _setError('Failed to generate stats: $e');
       return TransactionStats.empty();
     }
   }
 
-  // Helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -218,7 +227,8 @@ class TransactionController extends ChangeNotifier {
   }
 }
 
-// Transaction statistics model
+// lib/models/transaction_stats.dart
+
 class TransactionStats {
   final int totalTransactions;
   final double totalSpent;
@@ -247,3 +257,4 @@ class TransactionStats {
     );
   }
 }
+

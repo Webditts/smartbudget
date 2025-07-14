@@ -57,17 +57,27 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
       if (error != null) {
         setState(() => _error = error);
+        return;
+      }
+
+      final user = auth.currentUser;
+      if (user == null) {
+        setState(() => _error = 'Failed to load user data.');
+        return;
+      }
+
+      if (user.role == UserRole.student) {
+        Navigator.pushReplacementNamed(context, '/student_dashboard');
       } else {
-        // Navigate to dashboard based on role
-        final user = auth.currentUser!;
-        if (user.role == UserRole.student) {
-          Navigator.pushReplacementNamed(context, '/student_dashboard');
-        } else {
-          Navigator.pushReplacementNamed(context, '/parent_dashboard', arguments: user.studentEmail);
-        }
+        Navigator.pushReplacementNamed(
+          context,
+          '/parent_dashboard',
+          arguments: user.studentEmail,
+        );
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Sign in to continue your learning journey',
+                          'Sign in to continue your journey',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Colors.grey[600],
                             fontSize: 16,
